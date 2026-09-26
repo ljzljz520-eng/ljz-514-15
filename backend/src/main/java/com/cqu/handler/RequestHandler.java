@@ -11,7 +11,9 @@ import java.io.OutputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class RequestHandler {
@@ -55,7 +57,7 @@ public class RequestHandler {
                 writeJson(exchange, 400, Map.of("error", "缺少必填参数：from、to"));
                 return;
             }
-            PathResult result = graphService.shortestPath(from, to);
+            PathResult result = graphService.shortestPathWithVias(from, to, parseViaIds(q.get("via")));
             writeJson(exchange, 200, result);
         } catch (IllegalArgumentException e) {
             writeJson(exchange, 400, Map.of("error", e.getMessage()));
@@ -73,6 +75,20 @@ public class RequestHandler {
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(bytes);
         }
+    }
+
+    private static List<String> parseViaIds(String raw) {
+        List<String> ids = new ArrayList<>();
+        if (raw == null || raw.isBlank()) {
+            return ids;
+        }
+        for (String part : raw.split(",")) {
+            String id = part.trim();
+            if (!id.isEmpty()) {
+                ids.add(id);
+            }
+        }
+        return ids;
     }
 
     private static Map<String, String> parseQuery(String rawQuery) {

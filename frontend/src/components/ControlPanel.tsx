@@ -1,6 +1,7 @@
 import { Button, Divider, Select, Skeleton, Typography } from "antd";
 import { ArrowLeftRight, Route, X } from "lucide-react";
 import { useMemo, useState } from "react";
+import RouteTemplates from "@/components/RouteTemplates";
 import { useTravelStore } from "@/stores/useTravelStore";
 
 const { Text } = Typography;
@@ -10,10 +11,12 @@ export default function ControlPanel() {
   const nodesLoading = useTravelStore((s) => s.nodesLoading);
   const startId = useTravelStore((s) => s.startId);
   const endId = useTravelStore((s) => s.endId);
+  const viaIds = useTravelStore((s) => s.viaIds);
   const route = useTravelStore((s) => s.route);
   const routeLoading = useTravelStore((s) => s.routeLoading);
   const setStartId = useTravelStore((s) => s.setStartId);
   const setEndId = useTravelStore((s) => s.setEndId);
+  const setViaIds = useTravelStore((s) => s.setViaIds);
   const swap = useTravelStore((s) => s.swap);
   const clear = useTravelStore((s) => s.clear);
   const fetchRoute = useTravelStore((s) => s.fetchRoute);
@@ -52,6 +55,10 @@ export default function ControlPanel() {
         <Skeleton active paragraph={{ rows: 6 }} />
       ) : (
         <>
+          <RouteTemplates />
+
+          <Divider className="my-3" />
+
           <div className="space-y-2">
             <Text type="secondary">起点</Text>
             <Select
@@ -82,6 +89,23 @@ export default function ControlPanel() {
             />
           </div>
 
+          <div className="mt-3 space-y-2">
+            <Text type="secondary">途经偏好（可选）</Text>
+            <Select
+              mode="multiple"
+              showSearch
+              value={viaIds}
+              placeholder="选择想途经的景点"
+              options={options}
+              className="w-full"
+              filterOption={false}
+              onSearch={setKeyword}
+              onChange={(v) => setViaIds(v)}
+              allowClear
+              maxTagCount="responsive"
+            />
+          </div>
+
           <div className="mt-4 grid grid-cols-2 gap-2">
             <Button onClick={() => swap()} icon={<ArrowLeftRight className="h-4 w-4" />}>
               交换
@@ -102,7 +126,7 @@ export default function ControlPanel() {
             {route ? (
               <div className="mt-3 space-y-2">
                 {route.pathNodes.map((n, idx) => (
-                  <div key={n.id} className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50 transition-colors">
+                  <div key={`${n.id}-${idx}`} className="rounded-lg border border-slate-200 p-2 hover:bg-slate-50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="text-sm text-slate-900">
                         <span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-white text-xs">
@@ -122,7 +146,7 @@ export default function ControlPanel() {
                 ))}
               </div>
             ) : (
-              <div className="mt-3 text-sm text-slate-600">选择起点与终点后开始规划。</div>
+              <div className="mt-3 text-sm text-slate-600">选择起点与终点后开始规划，或直接点击上方热门路线模板。</div>
             )}
           </div>
         </>

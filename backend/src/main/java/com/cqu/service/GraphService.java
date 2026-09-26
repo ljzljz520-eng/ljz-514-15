@@ -35,6 +35,52 @@ public class GraphService {
         return nodes.values().stream().sorted(Comparator.comparing(Node::getName)).toList();
     }
 
+    /**
+     * 途经点路径：按 from -> via1 -> via2 -> ... -> to 的顺序逐段计算最短路径并拼接。
+     * 途经点为“偏好”而非固定路线，具体路径仍由后端图算法计算得出。
+     */
+    public PathResult shortestPathWithVias(String fromId, String toId, List<String> viaIds) {
+        List<String> waypoints = new ArrayList<>();
+        waypoints.add(fromId);
+        if (viaIds != null) {
+            for (String via : viaIds) {
+                if (via != null && !via.isBlank()) {
+                    waypoints.add(via.trim());
+                }
+            }
+        }
+        waypoints.add(toId);
+        if (waypoints.size() <= 2) {
+            return shortestPath(fromId, toId);
+        }
+        for (String id : waypoints) {
+            if (!nodes.containsKey(id)) {
+                throw new IllegalArgumentException("起点、终点或途经点不存在");
+            }
+        }
+
+        List<String> allIds = new ArrayList<>();
+        List<Node> allNodes = new ArrayList<>();
+        List<Double> allSegments = new ArrayList<>();
+        double total = 0.0;
+
+        for (int i = 1; i < waypoints.size(); i++) {
+            PathResult leg = shortestPath(waypoints.get(i - 1), waypoints.get(i));
+            if (i == 1) {
+                allIds.addAll(leg.getPathNodeIds());
+                allNodes.addAll(leg.getPathNodes());
+            } else {
+                // 跳过每段首节点，避免拼接处重复
+                allIds.addAll(leg.getPathNodeIds().subList(1, leg.getPathNodeIds().size()));
+                allNodes.addAll(leg.getPathNodes().subList(1, leg.getPathNodes().size()));
+            }
+            allSegments.addAll(leg.getSegmentDistanceMeters());
+            total += leg.getTotalDistanceMeters();
+        }
+
+        return new PathResult(fromId, toId, total, allIds, allNodes, allSegments);
+    }
+
     public PathResult shortestPath(String fromId, String toId) {
         if (fromId == null || toId == null || !nodes.containsKey(fromId) || !nodes.containsKey(toId)) {
             throw new IllegalArgumentException("起点或终点不存在");
