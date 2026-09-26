@@ -8,6 +8,7 @@
 ## 📦 数据文件
 - `backend/src/main/resources/nodes.csv`：景点节点（必需）
 - `backend/src/main/resources/edges.csv`：边数据（可选，存在则优先使用；否则按地理距离自动生成边）
+- `backend/src/main/resources/templates.csv`：热门路线模板（可选；包含起终点与途经偏好，路径仍由后端实时计算）
 
 `edges.csv` 格式：至少包含表头 `from,to`；可选第三列 `distance_meters`（若缺省则按两点经纬度计算球面距离）。
 
@@ -22,6 +23,7 @@
 - 前端：http://localhost:3514
 - 后端健康检查：http://localhost:8514/api/health
 - 节点列表：http://localhost:8514/api/nodes
+- 路线模板：http://localhost:8514/api/templates
 - 数据库：localhost:5514（db: cq_travel / user: cq / pass: cq）
 
 ## 🧪 测试账号

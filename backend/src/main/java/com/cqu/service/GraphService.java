@@ -36,9 +36,54 @@ public class GraphService {
     }
 
     public PathResult shortestPath(String fromId, String toId) {
+        return shortestPath(fromId, toId, List.of());
+    }
+
+    public PathResult shortestPath(String fromId, String toId, List<String> viaIds) {
         if (fromId == null || toId == null || !nodes.containsKey(fromId) || !nodes.containsKey(toId)) {
             throw new IllegalArgumentException("起点或终点不存在");
         }
+
+        List<String> waypoints = new ArrayList<>();
+        List<String> via = new ArrayList<>();
+        waypoints.add(fromId);
+        if (viaIds != null) {
+            for (String raw : viaIds) {
+                if (raw == null || raw.isBlank()) {
+                    continue;
+                }
+                String id = raw.trim();
+                if (!nodes.containsKey(id)) {
+                    throw new IllegalArgumentException("途经点不存在：" + id);
+                }
+                via.add(id);
+                waypoints.add(id);
+            }
+        }
+        waypoints.add(toId);
+
+        List<String> pathIds = new ArrayList<>();
+        List<Node> pathNodes = new ArrayList<>();
+        List<Double> segments = new ArrayList<>();
+        double total = 0.0;
+
+        for (int i = 0; i + 1 < waypoints.size(); i++) {
+            PathResult leg = computeLeg(waypoints.get(i), waypoints.get(i + 1));
+            List<String> legIds = leg.getPathNodeIds();
+            List<Node> legNodes = leg.getPathNodes();
+            int offset = i == 0 ? 0 : 1;
+            for (int j = offset; j < legIds.size(); j++) {
+                pathIds.add(legIds.get(j));
+                pathNodes.add(legNodes.get(j));
+            }
+            segments.addAll(leg.getSegmentDistanceMeters());
+            total += leg.getTotalDistanceMeters();
+        }
+
+        return new PathResult(fromId, toId, total, pathIds, pathNodes, segments, via);
+    }
+
+    private PathResult computeLeg(String fromId, String toId) {
         if (fromId.equals(toId)) {
             List<String> ids = List.of(fromId);
             List<Node> ns = List.of(nodes.get(fromId));

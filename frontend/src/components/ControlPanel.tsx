@@ -1,21 +1,35 @@
 import { Button, Divider, Select, Skeleton, Typography } from "antd";
-import { ArrowLeftRight, Route, X } from "lucide-react";
+import { ArrowLeftRight, Baby, Camera, Compass, Moon, Route, Sparkles, X } from "lucide-react";
 import { useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { useTravelStore } from "@/stores/useTravelStore";
 
 const { Text } = Typography;
 
+const templateIcons: Record<string, ReactNode> = {
+  NIGHT_HALF_DAY: <Moon className="h-4 w-4" />,
+  FAMILY_EASY: <Baby className="h-4 w-4" />,
+  OLD_STREET_PHOTO: <Camera className="h-4 w-4" />,
+  FIRST_VISIT: <Compass className="h-4 w-4" />,
+};
+
 export default function ControlPanel() {
   const nodes = useTravelStore((s) => s.nodes);
   const nodesLoading = useTravelStore((s) => s.nodesLoading);
+  const templates = useTravelStore((s) => s.templates);
+  const templatesLoading = useTravelStore((s) => s.templatesLoading);
   const startId = useTravelStore((s) => s.startId);
   const endId = useTravelStore((s) => s.endId);
+  const viaIds = useTravelStore((s) => s.viaIds);
   const route = useTravelStore((s) => s.route);
   const routeLoading = useTravelStore((s) => s.routeLoading);
+  const activeTemplateId = useTravelStore((s) => s.activeTemplateId);
   const setStartId = useTravelStore((s) => s.setStartId);
   const setEndId = useTravelStore((s) => s.setEndId);
+  const setViaIds = useTravelStore((s) => s.setViaIds);
   const swap = useTravelStore((s) => s.swap);
   const clear = useTravelStore((s) => s.clear);
+  const applyTemplate = useTravelStore((s) => s.applyTemplate);
   const fetchRoute = useTravelStore((s) => s.fetchRoute);
 
   const [keyword, setKeyword] = useState<string>("");
@@ -32,6 +46,8 @@ export default function ControlPanel() {
     if (m < 1000) return `${Math.round(m)} m`;
     return `${(m / 1000).toFixed(2)} km`;
   }, [route]);
+
+  const viaIdSet = useMemo(() => new Set(route?.viaNodeIds ?? []), [route]);
 
   return (
     <div className="h-full flex flex-col p-4">
@@ -52,6 +68,41 @@ export default function ControlPanel() {
         <Skeleton active paragraph={{ rows: 6 }} />
       ) : (
         <>
+          <div className="space-y-2">
+            <Text type="secondary">热门路线模板</Text>
+            {templatesLoading ? (
+              <Skeleton active paragraph={{ rows: 2 }} />
+            ) : templates.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">
+                {templates.map((t) => {
+                  const active = t.id === activeTemplateId;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => void applyTemplate(t.id)}
+                      className={`rounded-xl border p-2 text-left transition-colors ${
+                        active
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50"
+                      }`}
+                    >
+                      <div className={`flex items-center gap-1.5 ${active ? "text-blue-700" : "text-slate-900"}`}>
+                        {templateIcons[t.id] ?? <Sparkles className="h-4 w-4" />}
+                        <span className="text-sm font-medium">{t.name}</span>
+                      </div>
+                      {t.desc ? <div className="mt-1 text-xs text-slate-500 line-clamp-2">{t.desc}</div> : null}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="text-xs text-slate-400">暂无可用模板</div>
+            )}
+          </div>
+
+          <Divider className="my-3" />
+
           <div className="space-y-2">
             <Text type="secondary">起点</Text>
             <Select
@@ -82,6 +133,23 @@ export default function ControlPanel() {
             />
           </div>
 
+          <div className="mt-3 space-y-2">
+            <Text type="secondary">途经点（可选）</Text>
+            <Select
+              mode="multiple"
+              showSearch
+              value={viaIds}
+              placeholder="选择途经点"
+              options={options}
+              className="w-full"
+              filterOption={false}
+              onSearch={setKeyword}
+              onChange={(vals) => setViaIds(vals)}
+              allowClear
+              maxTagCount="responsive"
+            />
+          </div>
+
           <div className="mt-4 grid grid-cols-2 gap-2">
             <Button onClick={() => swap()} icon={<ArrowLeftRight className="h-4 w-4" />}>
               交换
@@ -109,6 +177,11 @@ export default function ControlPanel() {
                           {idx + 1}
                         </span>
                         {n.name}
+                        {viaIdSet.has(n.id) ? (
+                          <span className="ml-2 inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-700">
+                            途经
+                          </span>
+                        ) : null}
                       </div>
                       <div className="text-xs text-slate-500">{n.type || ""}</div>
                     </div>
@@ -122,7 +195,7 @@ export default function ControlPanel() {
                 ))}
               </div>
             ) : (
-              <div className="mt-3 text-sm text-slate-600">选择起点与终点后开始规划。</div>
+              <div className="mt-3 text-sm text-slate-600">选择起点与终点后开始规划，或点击上方模板一键填入。</div>
             )}
           </div>
         </>

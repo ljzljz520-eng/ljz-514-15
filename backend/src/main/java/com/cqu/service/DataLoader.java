@@ -2,6 +2,7 @@ package com.cqu.service;
 
 import com.cqu.model.Node;
 import com.cqu.model.Edge;
+import com.cqu.model.RouteTemplate;
 import com.opencsv.CSVReader;
 
 import java.io.InputStream;
@@ -137,10 +138,70 @@ public class DataLoader {
         }
     }
 
+    public List<RouteTemplate> loadTemplateList() {
+        InputStream input = DataLoader.class.getClassLoader().getResourceAsStream("templates.csv");
+        if (input == null) {
+            logger.log(Level.WARNING, "未找到 templates.csv（resources），路线模板为空");
+            return List.of();
+        }
+
+        try (CSVReader reader = new CSVReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
+            String[] header = reader.readNext();
+            if (header == null) {
+                return List.of();
+            }
+
+            Map<String, Integer> index = new HashMap<>();
+            for (int i = 0; i < header.length; i++) {
+                index.put(header[i].trim().toLowerCase(), i);
+            }
+
+            requireColumns(index, List.of("id", "name", "start_id", "end_id"), "templates.csv");
+
+            List<RouteTemplate> templates = new ArrayList<>();
+            String[] row;
+            while ((row = reader.readNext()) != null) {
+                if (row.length == 0) {
+                    continue;
+                }
+
+                String id = readRequiredColOrNull(row, index, "id");
+                String name = readRequiredColOrNull(row, index, "name");
+                String startId = readRequiredColOrNull(row, index, "start_id");
+                String endId = readRequiredColOrNull(row, index, "end_id");
+                if (id == null || id.isBlank() || startId == null || startId.isBlank() || endId == null || endId.isBlank()) {
+                    logger.log(Level.WARNING, "Skip invalid templates.csv row: missing required columns");
+                    continue;
+                }
+
+                String desc = readColOrNull(row, index, "desc");
+                List<String> viaIds = new ArrayList<>();
+                String viaRaw = readColOrNull(row, index, "via_ids");
+                if (viaRaw != null && !viaRaw.isBlank()) {
+                    for (String part : viaRaw.split("[;，,]")) {
+                        String via = part.trim();
+                        if (!via.isEmpty()) {
+                            viaIds.add(via);
+                        }
+                    }
+                }
+
+                templates.add(new RouteTemplate(id.trim(), name == null ? "" : name.trim(), desc, startId.trim(), endId.trim(), viaIds));
+            }
+            return templates;
+        } catch (Exception e) {
+            throw new IllegalStateException("读取 templates.csv 失败", e);
+        }
+    }
+
     private static void requireColumns(Map<String, Integer> index, List<String> required) {
+        requireColumns(index, required, "nodes.csv");
+    }
+
+    private static void requireColumns(Map<String, Integer> index, List<String> required, String source) {
         for (String col : required) {
             if (!index.containsKey(col)) {
-                throw new IllegalStateException("nodes.csv 缺少必填列：" + col);
+                throw new IllegalStateException(source + " 缺少必填列：" + col);
             }
         }
     }

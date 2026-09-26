@@ -28,6 +28,7 @@ export default function MapContainer() {
   const nodes = useTravelStore((s) => s.nodes);
   const startId = useTravelStore((s) => s.startId);
   const endId = useTravelStore((s) => s.endId);
+  const viaIds = useTravelStore((s) => s.viaIds);
   const setStartId = useTravelStore((s) => s.setStartId);
   const setEndId = useTravelStore((s) => s.setEndId);
   const route = useTravelStore((s) => s.route);
@@ -48,6 +49,7 @@ export default function MapContainer() {
       {nodes.map((n) => {
         const isStart = n.id === startId;
         const isEnd = n.id === endId;
+        const isVia = !isStart && !isEnd && viaIds.includes(n.id);
         let icon: L.Icon | L.DivIcon | undefined;
         if (isStart) {
           icon = L.divIcon({
@@ -64,6 +66,14 @@ export default function MapContainer() {
               "<div style='width:18px;height:18px;border-radius:999px;background:#dc2626;border:2px solid white;box-shadow:0 6px 18px rgba(0,0,0,.18)'></div>",
             iconSize: [18, 18],
             iconAnchor: [9, 9],
+          });
+        } else if (isVia) {
+          icon = L.divIcon({
+            className: "",
+            html:
+              "<div style='width:16px;height:16px;border-radius:999px;background:#d97706;border:2px solid white;box-shadow:0 6px 18px rgba(0,0,0,.18)'></div>",
+            iconSize: [16, 16],
+            iconAnchor: [8, 8],
           });
         }
         return (

@@ -9,17 +9,23 @@ public class PathResult {
     private List<String> pathNodeIds;
     private List<Node> pathNodes;
     private List<Double> segmentDistanceMeters;
+    private List<String> viaNodeIds;
 
     public PathResult() {
     }
 
     public PathResult(String startId, String endId, double totalDistanceMeters, List<String> pathNodeIds, List<Node> pathNodes, List<Double> segmentDistanceMeters) {
+        this(startId, endId, totalDistanceMeters, pathNodeIds, pathNodes, segmentDistanceMeters, List.of());
+    }
+
+    public PathResult(String startId, String endId, double totalDistanceMeters, List<String> pathNodeIds, List<Node> pathNodes, List<Double> segmentDistanceMeters, List<String> viaNodeIds) {
         this.startId = startId;
         this.endId = endId;
         this.totalDistanceMeters = totalDistanceMeters;
         this.pathNodeIds = pathNodeIds;
         this.pathNodes = pathNodes;
         this.segmentDistanceMeters = segmentDistanceMeters;
+        this.viaNodeIds = viaNodeIds == null ? List.of() : viaNodeIds;
     }
 
     public String getStartId() {
@@ -68,6 +74,14 @@ public class PathResult {
 
     public void setSegmentDistanceMeters(List<Double> segmentDistanceMeters) {
         this.segmentDistanceMeters = segmentDistanceMeters;
+    }
+
+    public List<String> getViaNodeIds() {
+        return viaNodeIds;
+    }
+
+    public void setViaNodeIds(List<String> viaNodeIds) {
+        this.viaNodeIds = viaNodeIds;
     }
 }
 

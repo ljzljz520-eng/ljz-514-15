@@ -1,6 +1,7 @@
 package com.cqu.handler;
 
 import com.cqu.model.PathResult;
+import com.cqu.model.RouteTemplate;
 import com.cqu.service.GraphService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.Headers;
@@ -11,15 +12,23 @@ import java.io.OutputStream;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class RequestHandler {
     private final GraphService graphService;
+    private final List<RouteTemplate> templates;
     private final ObjectMapper mapper;
 
     public RequestHandler(GraphService graphService) {
+        this(graphService, List.of());
+    }
+
+    public RequestHandler(GraphService graphService, List<RouteTemplate> templates) {
         this.graphService = graphService;
+        this.templates = templates == null ? List.of() : List.copyOf(templates);
         this.mapper = new ObjectMapper();
     }
 
@@ -42,6 +51,14 @@ public class RequestHandler {
         writeJson(exchange, 200, graphService.listNodes());
     }
 
+    public void handleTemplates(HttpExchange exchange) throws IOException {
+        if (isPreflight(exchange)) {
+            respondNoContent(exchange);
+            return;
+        }
+        writeJson(exchange, 200, templates);
+    }
+
     public void handlePath(HttpExchange exchange) throws IOException {
         if (isPreflight(exchange)) {
             respondNoContent(exchange);
@@ -55,13 +72,28 @@ public class RequestHandler {
                 writeJson(exchange, 400, Map.of("error", "缺少必填参数：from、to"));
                 return;
             }
-            PathResult result = graphService.shortestPath(from, to);
+            List<String> via = parseVia(q.get("via"));
+            PathResult result = graphService.shortestPath(from, to, via);
             writeJson(exchange, 200, result);
         } catch (IllegalArgumentException e) {
             writeJson(exchange, 400, Map.of("error", e.getMessage()));
         } catch (Exception e) {
             writeJson(exchange, 500, Map.of("error", "服务器内部错误"));
         }
+    }
+
+    private static List<String> parseVia(String raw) {
+        List<String> via = new ArrayList<>();
+        if (raw == null || raw.isBlank()) {
+            return via;
+        }
+        for (String part : raw.split("[,;，]")) {
+            String id = part.trim();
+            if (!id.isEmpty()) {
+                via.add(id);
+            }
+        }
+        return via;
     }
 
     private void writeJson(HttpExchange exchange, int status, Object payload) throws IOException {

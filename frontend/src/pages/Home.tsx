@@ -8,10 +8,12 @@ const { Sider, Content } = Layout;
 
 export default function Home() {
   const loadNodes = useTravelStore((s) => s.loadNodes);
+  const loadTemplates = useTravelStore((s) => s.loadTemplates);
 
   useEffect(() => {
     void loadNodes();
-  }, [loadNodes]);
+    void loadTemplates();
+  }, [loadNodes, loadTemplates]);
 
   return (
     <Layout className="h-screen w-screen bg-slate-50">
